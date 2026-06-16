@@ -27,7 +27,13 @@
 
 ![PCA Explained Variance](sphx_glr_plot_pca_iris_002.png)
 
-> PC1 captures ~73% + PC2 captures ~23% = **~96% total variance** explained by first 2 components.
+> PC1 captures ~73% + PC2 captures ~23% + PC3 captures ~4% = **~100% total variance** explained by 3 components.
+
+### PCA — 3D Projection
+
+![PCA 3D Projection](pca_3d_projection.png)
+
+> Iris species are clearly separable in the first 3 principal components. Setosa (blue circles) forms a tight, distinct cluster.
 
 ### Model Performance
 

@@ -5,6 +5,7 @@ import seaborn as sns
 from sklearn.datasets import load_iris
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from mpl_toolkits.mplot3d import Axes3D
 
 TARGET_NAMES = {0: "setosa", 1: "versicolor", 2: "virginica"}
 FEATURE_NAMES = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
@@ -108,6 +109,42 @@ def plot_pca_2d(df):
     ax.legend()
     ax.grid(True, linestyle="--", alpha=0.4)
     sns.despine()
+    plt.tight_layout()
+    return fig
+
+
+def plot_pca_3d(df):
+    X = df[FEATURE_NAMES].values
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    pca = PCA(n_components=3)
+    X_pca = pca.fit_transform(X_scaled)
+
+    pca_df = pd.DataFrame(data=X_pca, columns=["PC1", "PC2", "PC3"])
+    pca_df["species"] = df["species_name"].values
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection="3d")
+
+    colors = {"setosa": "#3498db", "versicolor": "#2ecc71", "virginica": "#e74c3c"}
+    markers = {"setosa": "o", "versicolor": "^", "virginica": "s"}
+
+    for species in pca_df["species"].unique():
+        subset = pca_df[pca_df["species"] == species]
+        ax.scatter(
+            subset["PC1"], subset["PC2"], subset["PC3"],
+            c=colors[species], marker=markers[species],
+            label=species, edgecolor="k", s=60, alpha=0.85, depthshade=True
+        )
+
+    ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]:.1%})", fontsize=10)
+    ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]:.1%})", fontsize=10)
+    ax.set_zlabel(f"PC3 ({pca.explained_variance_ratio_[2]:.1%})", fontsize=10)
+    ax.set_title("PCA — 3D Projection of Iris Dataset", fontweight="bold", fontsize=14, pad=20)
+    ax.legend(loc="upper right", fontsize=9)
+
+    ax.view_init(elev=25, azim=45)
     plt.tight_layout()
     return fig
 

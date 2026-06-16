@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.data_understanding import (
     load_iris_data, display_shape, display_describe, display_null_counts,
     display_head, display_class_distribution, plot_class_distribution,
-    plot_pairplot, plot_correlation_heatmap, plot_pca_2d, plot_explained_variance
+    plot_pairplot, plot_correlation_heatmap, plot_pca_2d, plot_pca_3d, plot_explained_variance
 )
 from src.data_preparation import prepare_data
 from src.modeling import train_all_models, save_best_model
@@ -130,13 +130,13 @@ def render_home(df, models, X_test, y_test):
     col1, col2 = st.columns(2)
 
     with col1:
+        st.markdown("### PCA — 3D Projection")
+        st.pyplot(plot_pca_3d(df))
+
+    with col2:
         st.markdown("### PCA — Explained Variance Ratio")
         st.markdown("*scikit-learn PCA Iris reference chart — individual + cumulative explained variance*")
         st.pyplot(plot_explained_variance())
-
-    with col2:
-        st.markdown("### PCA — 2D Projection")
-        st.pyplot(plot_pca_2d(df))
 
     st.markdown("---")
 
@@ -264,6 +264,10 @@ def render_phase_2(df):
         """)
 
     with tab4:
+        st.markdown("#### PCA — 3D Projection")
+        st.pyplot(plot_pca_3d(df))
+
+        st.markdown("---")
         st.markdown("#### PCA — 2D Dimensionality Reduction")
         st.pyplot(plot_pca_2d(df))
 
@@ -276,7 +280,8 @@ def render_phase_2(df):
         **PCA Insights:**
         - PC1 captures ~73% of variance — dominated by petal features
         - PC2 captures ~23% — dominated by sepal features
-        - Together PC1+PC2 explain ~96% of total variance
+        - PC3 captures ~4% — residual variance
+        - Together PC1+PC2+PC3 explain ~100% of total variance
         - Classes are well-separated in PCA space, confirming the problem is highly solvable
         """)
 
