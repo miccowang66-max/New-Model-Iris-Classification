@@ -81,10 +81,14 @@ def main():
     st.markdown('<p class="main-header">🌸 Iris Species Classification</p>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">CRISP-DM Machine Learning Pipeline · PCA + Multi-Model Evaluation · Streamlit Deployment</p>', unsafe_allow_html=True)
 
+    with st.spinner("Loading Iris dataset & training models..."):
+        df, X_train, X_test, y_train, y_test, scaler, models = load_or_train()
+
     st.sidebar.markdown("## 📋 CRISP-DM Phases")
     phase = st.sidebar.radio(
         "Navigate:",
         [
+            "🏠 Home — Key Results",
             "1. Business Understanding",
             "2. Data Understanding",
             "3. Data Preparation",
@@ -95,10 +99,10 @@ def main():
         ],
     )
 
-    with st.spinner("Loading Iris dataset & training models..."):
-        df, X_train, X_test, y_train, y_test, scaler, models = load_or_train()
+    if phase == "🏠 Home — Key Results":
+        render_home(df, models, X_test, y_test)
 
-    if phase == "1. Business Understanding":
+    elif phase == "1. Business Understanding":
         render_phase_1()
 
     elif phase == "2. Data Understanding":
@@ -118,6 +122,58 @@ def main():
 
     elif phase == "7. Deployment — Predict":
         render_phase_6(models, scaler)
+
+
+def render_home(df, models, X_test, y_test):
+    st.markdown('<p class="phase-title">Key Results Dashboard</p>', unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("### PCA — Explained Variance Ratio")
+        st.markdown("*scikit-learn PCA Iris reference chart — individual + cumulative explained variance*")
+        st.pyplot(plot_explained_variance())
+
+    with col2:
+        st.markdown("### PCA — 2D Projection")
+        st.pyplot(plot_pca_2d(df))
+
+    st.markdown("---")
+
+    from src.evaluation import compute_all_models_metrics
+    all_metrics = compute_all_models_metrics(models, X_test, y_test)
+
+    st.markdown("### Model Performance Summary")
+
+    best_name = max(all_metrics, key=lambda m: all_metrics[m]["Accuracy"])
+    best_m = all_metrics[best_name]
+
+    cols = st.columns(6)
+    with cols[0]:
+        st.metric("Best Model", best_name)
+    with cols[1]:
+        st.metric("Accuracy", f"{best_m['Accuracy']:.2%}")
+    with cols[2]:
+        st.metric("F1 (Macro)", f"{best_m['F1 Score (Macro)']:.2%}")
+    with cols[3]:
+        st.metric("Precision (Macro)", f"{best_m['Precision (Macro)']:.2%}")
+    with cols[4]:
+        st.metric("Log Loss", f"{best_m.get('Log Loss', 0):.4f}")
+    with cols[5]:
+        st.metric("Matthews CC", f"{best_m['Matthews CorrCoef']:.4f}")
+
+    st.markdown("---")
+
+    col3, col4 = st.columns(2)
+    with col3:
+        st.markdown("### Class Distribution")
+        st.pyplot(plot_class_distribution(df))
+
+    with col4:
+        st.markdown("### Correlation Heatmap")
+        st.pyplot(plot_correlation_heatmap(df))
+
+    st.success(f"Best Model: **{best_name}** — Test Accuracy: {best_m['Accuracy']:.2%}. Use sidebar to explore full analysis.")
 
 
 def render_phase_1():

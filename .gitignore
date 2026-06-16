@@ -6,7 +6,5 @@ venv/
 env/
 .env
 data/processed/
-*.png
-*.jpg
 .streamlit/
 .ipynb_checkpoints/

@@ -21,6 +21,26 @@
 
 ---
 
+## 📊 Key Results
+
+### PCA Explained Variance Ratio
+
+![PCA Explained Variance](sphx_glr_plot_pca_iris_002.png)
+
+> PC1 captures ~73% + PC2 captures ~23% = **~96% total variance** explained by first 2 components.
+
+### Model Performance
+
+| Model | Accuracy | F1 (Macro) | Precision (Macro) | Log Loss |
+|-------|----------|------------|-------------------|----------|
+| Support Vector Classifier | **96.67%** | 0.9666 | 0.9697 | 0.1435 |
+| Logistic Regression | 93.33% | 0.9333 | 0.9333 | 0.1740 |
+| K-Nearest Neighbors | 93.33% | 0.9327 | 0.9444 | 0.1196 |
+| Decision Tree | 93.33% | 0.9333 | 0.9333 | 2.4029 |
+| Random Forest | 90.00% | 0.8997 | 0.9024 | 0.1204 |
+
+---
+
 ## 📊 CRISP-DM Workflow
 
 | Phase | Name | Module | Key Deliverables |
