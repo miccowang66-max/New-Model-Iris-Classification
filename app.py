@@ -343,48 +343,74 @@ def render_phase_3(df, X_train, X_test, y_train, y_test):
 
 
 def render_phase_4(models, gs_params):
-    st.markdown('<p class="phase-title">Phase 4 — Modeling</p>', unsafe_allow_html=True)
+    st.markdown('<p class="phase-title">Phase 4 — Modeling (Max R + Cross-Entropy)</p>', unsafe_allow_html=True)
 
     st.markdown("""
-    Five classification models are trained with **GridSearchCV + 5-Fold Cross-Validation**
-    to maximize each model's performance (`random_state=42` for reproducibility).
+    ### Optimization Strategy
 
-    ### Cross-Entropy (Log Loss) Optimization
+    | Technique | Description |
+    |-----------|-------------|
+    | **GridSearchCV** | Exhaustive search over hyperparameter grid with 5-fold CV — maximizes **Accuracy (Max R)** |
+    | **Cross-Entropy** | `LogisticRegression(solver='lbfgs')` uses multinomial **cross-entropy (log loss)** as the training objective |
+    | **Calibrated SVC** | `CalibratedClassifierCV` wrapper for reliable probability estimates |
 
-    **Logistic Regression** uses `solver='lbfgs'` with **multinomial cross-entropy (log loss)**
-    as its objective function — this is the standard for multi-class classification.
-
-    All models are evaluated by maximizing **Accuracy (Max R)** via GridSearchCV.
+    Each model tests multiple hyperparameter combinations; the combination with the **highest CV accuracy** is selected. This is the **Max R** process.
     """)
 
-    st.markdown("### GridSearchCV Best Parameters")
-    cols = st.columns(len(models))
-    for idx, (name, _model) in enumerate(models.items()):
-        with cols[idx]:
-            st.markdown(f"**{name}**")
-            if name in gs_params:
-                bp = gs_params[name]["best_params"]
-                cv_score = gs_params[name]["best_cv_score"]
-                st.markdown(f"*CV Score: {cv_score:.2%}*")
-                for k, v in bp.items():
-                    st.markdown(f"- `{k}`: **{v}**")
-            else:
-                params = _model.get_params()
-                key_params = {}
-                if "C" in params:
-                    key_params["C"] = params["C"]
-                if "n_neighbors" in params:
-                    key_params["n_neighbors"] = params["n_neighbors"]
-                if "kernel" in params:
-                    key_params["kernel"] = params["kernel"]
-                if "n_estimators" in params:
-                    key_params["n_estimators"] = params["n_estimators"]
-                if "max_depth" in params:
-                    key_params["max_depth"] = params["max_depth"]
-                for k, v in key_params.items():
-                    st.markdown(f"- `{k}`: **{v}**")
+    st.markdown("---")
+    st.markdown("### GridSearchCV Results — Max R Tuning")
 
-    st.info("GridSearchCV maximizes each model's accuracy independently. Go to **Evaluation** phase for comparison.")
+    selected_model = st.selectbox(
+        "Select model to view Max R tuning details:",
+        list(models.keys()),
+        index=0,
+    )
+
+    if selected_model in gs_params:
+        info = gs_params[selected_model]
+        bp = info["best_params"]
+        cv_score = info["best_cv_score"]
+        cv_df = info["cv_results_df"]
+        n_combos = info["n_combos"]
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Combinations Tested", n_combos)
+        with col2:
+            st.metric("Best CV Score (Max R)", f"{cv_score:.2%}")
+        with col3:
+            st.metric("CV Folds", 5)
+
+        st.markdown("#### Best Hyperparameters Found")
+        for k, v in bp.items():
+            st.markdown(f"- `{k}` = **{v}**")
+
+        st.markdown("---")
+        st.markdown("#### All Parameter Combinations (sorted by Max R)")
+
+        cols_to_show = ["rank_test_score"]
+        for col in cv_df.columns:
+            if col.startswith("param_") and cv_df[col].nunique() > 1:
+                cols_to_show.append(col)
+        cols_to_show.append("mean_test_score")
+        cols_to_show.append("std_test_score")
+
+        display_df = cv_df[cols_to_show].copy()
+        display_df = display_df.sort_values("rank_test_score")
+        display_df["mean_test_score"] = display_df["mean_test_score"].apply(lambda x: f"{x:.4f}")
+        display_df["std_test_score"] = display_df["std_test_score"].apply(lambda x: f"{x:.4f}")
+        display_df.columns = [c.replace("param_", "").replace("mean_test_score", "CV Mean (Max R)")
+                              .replace("std_test_score", "CV Std").replace("rank_test_score", "Rank")
+                              for c in display_df.columns]
+
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+        st.success(
+            f"**Max R achieved for {selected_model}:** Best CV Score = {cv_score:.2%} "
+            f"with params {bp} (selected from {n_combos} combinations)"
+        )
+
+    st.info("GridSearchCV maximizes each model's accuracy independently. Go to **Evaluation** for comparison.")
 
 
 def render_phase_5(models, X_train, y_train, X_test, y_test):

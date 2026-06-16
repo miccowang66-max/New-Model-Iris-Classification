@@ -1,6 +1,7 @@
 import os
 import joblib
 import numpy as np
+import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -85,7 +86,7 @@ def train_with_gridsearch(X_train, y_train):
     for name, config in param_grids.items():
         gs = GridSearchCV(
             config["estimator"], config["param_grid"],
-            cv=5, scoring="accuracy", n_jobs=-1, refit=True
+            cv=5, scoring="accuracy", n_jobs=-1, refit=True, return_train_score=False
         )
         gs.fit(X_train, y_train)
 
@@ -99,9 +100,12 @@ def train_with_gridsearch(X_train, y_train):
         else:
             best_models[name] = gs.best_estimator_
 
+        cv_df = pd.DataFrame(gs.cv_results_)
         best_params_all[name] = {
             "best_params": gs.best_params_,
             "best_cv_score": gs.best_score_,
+            "cv_results_df": cv_df,
+            "n_combos": len(cv_df),
         }
 
     return best_models, best_params_all
