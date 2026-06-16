@@ -118,7 +118,7 @@ def main():
         render_phase_3(df, X_train, X_test, y_train, y_test)
 
     elif phase == "4. Modeling":
-        render_phase_4(gs_models, gs_params)
+        render_phase_4(gs_models, gs_params, X_test, y_test)
 
     elif phase == "5. Evaluation":
         render_phase_5(gs_models, X_train, y_train, X_test, y_test)
@@ -342,7 +342,7 @@ def render_phase_3(df, X_train, X_test, y_train, y_test):
         st.dataframe(preview, use_container_width=True)
 
 
-def render_phase_4(models, gs_params):
+def render_phase_4(models, gs_params, X_test, y_test):
     st.markdown('<p class="phase-title">Phase 4 — Modeling (Max R + Cross-Entropy)</p>', unsafe_allow_html=True)
 
     st.markdown("""
@@ -413,7 +413,82 @@ def render_phase_4(models, gs_params):
             f"with params {bp} (selected from {n_combos} combinations)"
         )
 
-    st.info("GridSearchCV maximizes each model's accuracy independently. Go to **Evaluation** for comparison.")
+    st.markdown("---")
+    st.markdown("### Cross-Entropy (Log Loss) — Process & Results")
+
+    col_ce1, col_ce2 = st.columns([1, 1])
+
+    with col_ce1:
+        st.markdown("""
+        #### How Cross-Entropy Works
+
+        For multi-class classification, **cross-entropy loss** (log loss) measures the
+        difference between predicted probabilities and true labels:
+
+        $$\\text{Log Loss} = -\\frac{1}{N}\\sum_{i=1}^{N}\\sum_{c=1}^{C} y_{i,c} \\log(\\hat{p}_{i,c})$$
+
+        - $N$ = number of samples
+        - $C$ = number of classes (3 for Iris)
+        - $y_{i,c}$ = 1 if sample $i$ belongs to class $c$, else 0
+        - $\\hat{p}_{i,c}$ = predicted probability for class $c$
+
+        **Training:** `LogisticRegression(solver='lbfgs')` minimizes this loss function
+        during training. A **lower** log loss = better calibrated probabilities.
+
+        **Evaluation:** `sklearn.metrics.log_loss()` computes log loss on the test set
+        using predicted probabilities from `predict_proba()`.
+        """)
+
+    with col_ce2:
+        from src.evaluation import compute_all_models_metrics
+        all_metrics = compute_all_models_metrics(models, X_test, y_test)
+
+        st.markdown("#### Log Loss Comparison (Test Set)")
+
+        model_names = []
+        log_losses = []
+        has_proba_flags = []
+        for name, m in all_metrics.items():
+            model_names.append(name)
+            ll = m.get("Log Loss")
+            log_losses.append(ll if ll is not None else 0)
+            has_proba_flags.append(ll is not None)
+
+        ce_df = pd.DataFrame({
+            "Model": model_names,
+            "Log Loss (Cross-Entropy)": log_losses,
+        }).sort_values("Log Loss (Cross-Entropy)")
+
+        colors_ce = ["#27ae60" if v == min(log_losses) else
+                     "#e74c3c" if v == max(log_losses) else "#3498db"
+                     for v in ce_df["Log Loss (Cross-Entropy)"]]
+
+        fig_ce, ax_ce = plt.subplots(figsize=(8, 4))
+        bars = ax_ce.barh(ce_df["Model"], ce_df["Log Loss (Cross-Entropy)"],
+                          color=colors_ce, edgecolor="black", linewidth=0.8)
+        for bar, val in zip(bars, ce_df["Log Loss (Cross-Entropy)"]):
+            ax_ce.text(bar.get_width() + 0.02, bar.get_y() + bar.get_height() / 2,
+                       f"{val:.4f}", va="center", fontweight="bold", fontsize=10)
+        ax_ce.set_xlabel("Log Loss (lower is better)")
+        ax_ce.set_title("Cross-Entropy (Log Loss) by Model", fontweight="bold", fontsize=12)
+        sns.despine()
+        st.pyplot(fig_ce)
+
+        st.markdown("#### Log Loss Values")
+        ce_display = ce_df.copy()
+        ce_display["Log Loss (Cross-Entropy)"] = ce_display["Log Loss (Cross-Entropy)"].apply(
+            lambda x: f"{x:.4f}"
+        )
+        st.dataframe(ce_display, use_container_width=True, hide_index=True)
+
+        best_ce_model = ce_df.iloc[0]["Model"]
+        best_ce_val = ce_df.iloc[0]["Log Loss (Cross-Entropy)"]
+        st.success(
+            f"**Best Cross-Entropy:** {best_ce_model} — Log Loss = {best_ce_val:.4f} "
+            f"(lowest = best calibrated probabilities)"
+        )
+
+    st.info("GridSearchCV + Cross-Entropy: Max R optimizes accuracy; Cross-Entropy measures probability calibration quality.")
 
 
 def render_phase_5(models, X_train, y_train, X_test, y_test):
