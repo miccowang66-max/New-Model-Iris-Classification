@@ -130,13 +130,13 @@ def render_home(df, models, X_test, y_test):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("### PCA — 3D Projection")
-        st.pyplot(plot_pca_3d(df))
-
-    with col2:
         st.markdown("### PCA — Explained Variance Ratio")
         st.markdown("*scikit-learn PCA Iris reference chart — individual + cumulative explained variance*")
         st.pyplot(plot_explained_variance())
+
+    with col2:
+        st.markdown("### PCA — 3D Projection")
+        st.pyplot(plot_pca_3d(df))
 
     st.markdown("---")
 
