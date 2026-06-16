@@ -16,8 +16,10 @@
 
 | Platform | URL | Description |
 |----------|-----|-------------|
-| **Streamlit Cloud** | *Coming soon* | Production deployment |
+| **Streamlit Cloud** | [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=miccowang66-max/New-Model-Iris-Classification&branch=main&mainModule=app.py) | Production deployment |
 | **Local** | `streamlit run app.py` | Local development server |
+
+> Click the Streamlit badge above to deploy instantly, or run locally with the command below.
 
 ---
 
@@ -49,6 +51,13 @@
 - 🎯 **Confusion Matrices** — Heatmaps for all 5 models side-by-side
 - 📉 **ROC Curves** — One-vs-Rest ROC + AUC per species per model
 - 📋 **Classification Reports** — Precision / Recall / F1 per class
+
+### Performance Metrics Dashboard
+- 📊 **10 Comprehensive Metrics** — Accuracy, Precision (Macro/Weighted), Recall (Macro/Weighted), F1 Score (Macro/Weighted), Log Loss, Matthews Correlation Coefficient, Cohen's Kappa
+- 🏆 **Per-Model Metric Cards** — `st.metric` dashboard with top-row summary for any selected model
+- 📋 **Full Comparison Table** — All 10 metrics across all 5 models with color-graded cells
+- 📊 **Metric Bar Chart** — Side-by-side Accuracy / F1 / Precision / Recall per model
+- 🎯 **Selective Confusion Matrix** — Dynamic heatmap for the selected model only
 
 ### Live Prediction (Phase 6)
 - 🎚 **Interactive Sliders** — Sepal length/width, Petal length/width

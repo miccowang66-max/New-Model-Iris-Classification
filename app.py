@@ -4,6 +4,9 @@ import numpy as np
 import joblib
 import os
 import sys
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix as sklearn_cm
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -16,7 +19,8 @@ from src.data_preparation import prepare_data
 from src.modeling import train_all_models, save_best_model
 from src.evaluation import (
     evaluate_all, evaluate_with_cv, get_classification_reports,
-    plot_confusion_matrices, plot_roc_curves, plot_model_comparison, plot_cv_comparison
+    plot_confusion_matrices, plot_roc_curves, plot_model_comparison, plot_cv_comparison,
+    compute_all_models_metrics
 )
 
 st.set_page_config(
@@ -86,7 +90,8 @@ def main():
             "3. Data Preparation",
             "4. Modeling",
             "5. Evaluation",
-            "6. Deployment — Predict",
+            "6. Performance Metrics",
+            "7. Deployment — Predict",
         ],
     )
 
@@ -108,7 +113,10 @@ def main():
     elif phase == "5. Evaluation":
         render_phase_5(models, X_train, y_train, X_test, y_test)
 
-    elif phase == "6. Deployment — Predict":
+    elif phase == "6. Performance Metrics":
+        render_performance_metrics(models, X_test, y_test)
+
+    elif phase == "7. Deployment — Predict":
         render_phase_6(scaler)
 
 
@@ -337,6 +345,105 @@ def render_phase_5(models, X_train, y_train, X_test, y_test):
     st.markdown("---")
     st.markdown("### ROC Curves (One-vs-Rest)")
     st.pyplot(plot_roc_curves(models, X_test, y_test))
+
+
+def render_performance_metrics(models, X_test, y_test):
+    st.markdown('<p class="phase-title">Performance Metrics \u2014 All Models</p>', unsafe_allow_html=True)
+
+    all_metrics = compute_all_models_metrics(models, X_test, y_test)
+
+    selected_model = st.selectbox(
+        "Select model to view detailed metrics:",
+        list(models.keys()),
+        index=list(models.keys()).index(
+            max(all_metrics, key=lambda m: all_metrics[m]["Accuracy"])
+        ),
+    )
+
+    metrics = all_metrics[selected_model]
+    y_pred = models[selected_model].predict(X_test)
+    y_proba = None
+    if hasattr(models[selected_model], "predict_proba"):
+        y_proba = models[selected_model].predict_proba(X_test)
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.metric("Accuracy", f"{metrics['Accuracy']:.2%}")
+    with col2:
+        st.metric("F1 (Macro)", f"{metrics['F1 Score (Macro)']:.2%}")
+    with col3:
+        st.metric("Precision (Macro)", f"{metrics['Precision (Macro)']:.2%}")
+    with col4:
+        st.metric("Recall (Macro)", f"{metrics['Recall (Macro)']:.2%}")
+    with col5:
+        ll = metrics.get("Log Loss")
+        st.metric("Log Loss", f"{ll:.4f}" if ll is not None else "N/A")
+
+    col6, col7, col8, col9, col10 = st.columns(5)
+    with col6:
+        st.metric("F1 (Weighted)", f"{metrics['F1 Score (Weighted)']:.2%}")
+    with col7:
+        st.metric("Precision (Wtd)", f"{metrics['Precision (Weighted)']:.2%}")
+    with col8:
+        st.metric("Recall (Wtd)", f"{metrics['Recall (Weighted)']:.2%}")
+    with col9:
+        st.metric("Matthews CC", f"{metrics['Matthews CorrCoef']:.4f}")
+    with col10:
+        st.metric("Cohen's Kappa", f"{metrics[\"Cohen\u2019s Kappa\"]:.4f}")
+
+    st.markdown("---")
+    st.markdown("### Model Comparison Table")
+    comparison_rows = []
+    for name, m in all_metrics.items():
+        row = {
+            "Model": name,
+            "Accuracy": m["Accuracy"],
+            "F1 Macro": m["F1 Score (Macro)"],
+            "Precision Macro": m["Precision (Macro)"],
+            "Recall Macro": m["Recall (Macro)"],
+            "MCC": m["Matthews CorrCoef"],
+            "Kappa": m["Cohen\u2019s Kappa"],
+        }
+        if m.get("Log Loss") is not None:
+            row["Log Loss"] = m["Log Loss"]
+        comparison_rows.append(row)
+
+    df_compare = pd.DataFrame(comparison_rows)
+    df_compare = df_compare.sort_values("Accuracy", ascending=False).reset_index(drop=True)
+
+    format_dict = {col: "{:.4f}" for col in df_compare.columns if col != "Model"}
+    st.dataframe(df_compare.style.format(format_dict).background_gradient(
+        subset=[c for c in df_compare.columns if c != "Model"],
+        cmap="RdYlGn", axis=0
+    ), use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("### Per-Class Metrics (Macro-Averaged)")
+
+    model_names = list(all_metrics.keys())
+    chart_data = pd.DataFrame({
+        "Model": model_names,
+        "Accuracy": [all_metrics[n]["Accuracy"] for n in model_names],
+        "F1 Score": [all_metrics[n]["F1 Score (Macro)"] for n in model_names],
+        "Precision": [all_metrics[n]["Precision (Macro)"] for n in model_names],
+        "Recall": [all_metrics[n]["Recall (Macro)"] for n in model_names],
+    }).set_index("Model")
+
+    st.bar_chart(chart_data, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown(f"### Confusion Matrix — {selected_model}")
+    y_pred_sel = models[selected_model].predict(X_test)
+    fig, ax = plt.subplots(figsize=(5, 4))
+    cm_data = sklearn_cm(y_test, y_pred_sel)
+    sns.heatmap(cm_data, annot=True, fmt="d", cmap="Blues",
+                xticklabels=["setosa", "versicolor", "virginica"],
+                yticklabels=["setosa", "versicolor", "virginica"],
+                linewidths=0.5, ax=ax, cbar=False)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Actual")
+    ax.set_title(selected_model, fontweight="bold")
+    st.pyplot(fig)
 
 
 def render_phase_6(scaler):

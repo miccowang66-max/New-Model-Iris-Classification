@@ -2,14 +2,40 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import (accuracy_score, classification_report,
-                              confusion_matrix, roc_curve, auc)
+from sklearn.metrics import (accuracy_score, classification_report, confusion_matrix,
+                              roc_curve, auc, precision_score, recall_score, f1_score,
+                              log_loss, matthews_corrcoef, cohen_kappa_score)
 from sklearn.preprocessing import label_binarize
 from sklearn.model_selection import cross_val_score
 
 TARGET_NAMES = ["setosa", "versicolor", "virginica"]
 plt.rcParams["figure.dpi"] = 120
 plt.rcParams["font.size"] = 10
+
+
+def compute_all_metrics(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    y_proba = None
+    if hasattr(model, "predict_proba"):
+        y_proba = model.predict_proba(X_test)
+
+    metrics = {
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "Precision (Macro)": precision_score(y_test, y_pred, average="macro", zero_division=0),
+        "Recall (Macro)": recall_score(y_test, y_pred, average="macro", zero_division=0),
+        "F1 Score (Macro)": f1_score(y_test, y_pred, average="macro", zero_division=0),
+        "Precision (Weighted)": precision_score(y_test, y_pred, average="weighted", zero_division=0),
+        "Recall (Weighted)": recall_score(y_test, y_pred, average="weighted", zero_division=0),
+        "F1 Score (Weighted)": f1_score(y_test, y_pred, average="weighted", zero_division=0),
+        "Matthews CorrCoef": matthews_corrcoef(y_test, y_pred),
+        "Cohen\u2019s Kappa": cohen_kappa_score(y_test, y_pred),
+    }
+    if y_proba is not None:
+        metrics["Log Loss"] = log_loss(y_test, y_proba)
+    else:
+        metrics["Log Loss"] = None
+
+    return metrics
 
 
 def evaluate_all(models, X_test, y_test):
@@ -43,6 +69,13 @@ def evaluate_with_cv(models, X_train, y_train, X_test, y_test, cv=5):
     df_results = pd.DataFrame(results)
     df_results = df_results.sort_values("Test Accuracy", ascending=False).reset_index(drop=True)
     return df_results
+
+
+def compute_all_models_metrics(models, X_test, y_test):
+    all_metrics = {}
+    for name, model in models.items():
+        all_metrics[name] = compute_all_metrics(model, X_test, y_test)
+    return all_metrics
 
 
 def get_classification_reports(models, X_test, y_test):
