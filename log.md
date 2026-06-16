@@ -53,4 +53,25 @@
 
 - Swapped Home dashboard layout: PCA explained variance (left) + 3D projection (right)
 - Removed `*.png` and `*.jpg` from `.gitignore` to allow static chart files in repo
-- Final git history: 8 commits on `main` branch
+
+## 2026-06-16 — GridSearchCV (Max R) + Cross-Entropy Optimization
+
+- **Max R — GridSearchCV hyperparameter tuning**:
+  - Added `train_with_gridsearch()` to `modeling.py` — exhaustive search over all hyperparameter combinations
+  - Parameter grids: LR (20 combos), KNN (20), SVC (16), RF (36), DT (30) = **122 total combinations** tested
+  - Each combo evaluated with 5-fold CV; best combination selected by max CV accuracy
+  - Best results: SVC CV=98.33% (`C=1, gamma=0.1`), LR test=100% (`C=10, max_iter=500`)
+  - Phase 4 displays full tuning table per model — all parameter combinations sorted by CV score
+- **Cross-Entropy (Log Loss) — Process & Results**:
+  - Dedicated section in Phase 4 with LaTeX formula explanation
+  - Log Loss bar chart across all 5 models (horizontal, green=best, red=worst)
+  - Log Loss values: LR 0.0833 (best, cross-entropy trained), KNN 0.1196, RF 0.1317, SVC 0.1657, DT 2.4029
+  - Explanation of `solver='lbfgs'` minimizing multinomial cross-entropy during training
+- **R² Score** added to `compute_all_metrics()` and home dashboard (7 st.metric cards now)
+- **Cache fix**: `cv_results_df` KeyError from stale Streamlit Cloud cache — `info.get("cv_results_df")` with warning fallback
+
+## 2026-06-16 — Log Files
+
+- Created `log.md` with chronological development history (HW6 style)
+- Updated `README.md` with GridSearchCV results, 3D PCA chart, Cross-Entropy model performance table
+- Final git history: 12 commits on `main` branch

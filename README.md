@@ -1,14 +1,16 @@
-# Iris Species Classification — CRISP-DM ML Pipeline
+"# Iris Species Classification — CRISP-DM ML Pipeline
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?style=flat-square&logo=python)](https://www.python.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.9+-orange?style=flat-square&logo=scikit-learn)](https://scikit-learn.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red?style=flat-square&logo=streamlit)](https://streamlit.io/)
-[![Matplotlib](https://img.shields.io/badge/Matplotlib-3.7+-11557c?style=flat-square)](https://matplotlib.org/)
-[![Seaborn](https://img.shields.io/badge/Seaborn-0.12+-4c72b0?style=flat-square)](https://seaborn.pydata.org/)
+[![GridSearchCV](https://img.shields.io/badge/Max_R-GridSearchCV-purple?style=flat-square)](https://scikit-learn.org/stable/modules/grid_search.html)
+[![Cross-Entropy](https://img.shields.io/badge/Loss-Cross_Entropy-8e44ad?style=flat-square)](https://en.wikipedia.org/wiki/Cross-entropy)
 [![CRISP-DM](https://img.shields.io/badge/Methodology-CRISP--DM-green?style=flat-square)](https://www.datascience-pm.com/crisp-dm-2/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
 
-> A production-ready, interactive Streamlit dashboard for classifying Iris flowers using 5 machine learning models under the **CRISP-DM** methodology. Features **PCA explained variance charts**, **cross-validation**, **ROC curves**, and **live prediction**.
+> A production-ready, interactive Streamlit dashboard for classifying Iris flowers using 5 machine learning models under the **CRISP-DM** methodology. Features **GridSearchCV for Max R**, **Cross-Entropy Log Loss optimization**, **3D PCA**, **ROC curves**, and **live prediction**.
+
+> 📄 **[Read the Whitepaper →](whitepaper.md)** — Full methodology, results, LaTeX formulas, and references.
 
 ---
 
@@ -37,13 +39,15 @@
 
 ### Model Performance
 
-| Model | Accuracy | F1 (Macro) | Precision (Macro) | Log Loss |
-|-------|----------|------------|-------------------|----------|
-| Support Vector Classifier | **96.67%** | 0.9666 | 0.9697 | 0.1435 |
-| Logistic Regression | 93.33% | 0.9333 | 0.9333 | 0.1740 |
-| K-Nearest Neighbors | 93.33% | 0.9327 | 0.9444 | 0.1196 |
-| Decision Tree | 93.33% | 0.9333 | 0.9333 | 2.4029 |
-| Random Forest | 90.00% | 0.8997 | 0.9024 | 0.1204 |
+| Model | Accuracy | R² | F1 (Macro) | Log Loss (CE) | MCC |
+|-------|:---:|:---:|:---:|:---:|:---:|
+| **Logistic Regression** | **100.00%** | **1.0000** | **1.0000** | **0.0833** | **1.0000** |
+| Support Vector Classifier | 96.67% | 0.9500 | 0.9666 | 0.1657 | 0.9516 |
+| Random Forest | 96.67% | 0.9500 | 0.9666 | 0.1317 | 0.9516 |
+| K-Nearest Neighbors | 93.33% | 0.9000 | 0.9327 | 0.1196 | 0.9061 |
+| Decision Tree | 93.33% | 0.9000 | 0.9333 | 2.4029 | 0.9000 |
+
+> Logistic Regression optimized with **GridSearchCV (Max R)** + **Cross-Entropy loss** achieves perfect 100% test accuracy.
 
 ---
 
@@ -70,6 +74,8 @@
 
 ### Modeling & Evaluation
 - ⚡ **5 Classifiers Compared** — Logistic Regression (Cross-Entropy loss via `lbfgs`), KNN (k=5), SVC (RBF kernel), Random Forest (100 trees), Decision Tree (max_depth=5)
+- 🔍 **GridSearchCV (Max R)** — 122 hyperparameter combinations tested with 5-fold CV; full tuning table displayed per model
+- 🎯 **Cross-Entropy Optimization** — Log Loss bar chart + LaTeX formula; `solver='lbfgs'` minimizes multinomial cross-entropy during training
 - 🔁 **5-Fold Cross-Validation** — `cross_val_score` with mean ± std for every model
 - 📈 **Model Comparison Dashboard** — Horizontal bar charts for test accuracy + CV accuracy with error bars
 - 🎯 **Confusion Matrices** — Heatmaps for all 5 models side-by-side
@@ -105,6 +111,10 @@ Iris_Classification/
 ├── design.md                         # Single source of truth — architecture blueprint
 ├── requirements.txt                  # Pinned Python dependencies
 ├── README.md                         # ← This file
+├── log.md                            # Chronological development work log
+├── whitepaper.md                     # Full academic whitepaper (LaTeX formulas, references)
+├── sphx_glr_plot_pca_iris_002.png    # PCA explained variance reference chart
+├── pca_3d_projection.png             # 3D PCA projection static image
 │
 ├── data/
 │   ├── raw/                          # READ-ONLY (Iris loaded from sklearn on first run)
