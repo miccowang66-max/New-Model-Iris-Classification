@@ -117,7 +117,7 @@ def main():
         render_performance_metrics(models, X_test, y_test)
 
     elif phase == "7. Deployment — Predict":
-        render_phase_6(scaler)
+        render_phase_6(models, scaler)
 
 
 def render_phase_1():
@@ -447,17 +447,17 @@ def render_performance_metrics(models, X_test, y_test):
     st.pyplot(fig)
 
 
-def render_phase_6(scaler):
-    st.markdown('<p class="phase-title">Phase 6 — Deployment — Live Prediction</p>', unsafe_allow_html=True)
+def render_phase_6(models, scaler):
+    st.markdown('<p class="phase-title">Phase 7 — Deployment — Live Prediction</p>', unsafe_allow_html=True)
 
     st.markdown("Enter flower measurements below to predict the Iris species in real time.")
 
     best_model = None
     if os.path.exists(BEST_MODEL_PATH):
         best_model = joblib.load(BEST_MODEL_PATH)
-    else:
-        st.error("No trained model found. Please ensure training has completed.")
-        return
+    if best_model is None and models:
+        best_model = models.get("Support Vector Classifier", list(models.values())[0])
+        st.warning("Using in-memory model (pkl file not found).")
 
     col1, col2 = st.columns([1, 1])
 
