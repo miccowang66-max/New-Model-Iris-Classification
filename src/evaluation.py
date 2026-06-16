@@ -28,7 +28,7 @@ def compute_all_metrics(model, X_test, y_test):
         "Recall (Weighted)": recall_score(y_test, y_pred, average="weighted", zero_division=0),
         "F1 Score (Weighted)": f1_score(y_test, y_pred, average="weighted", zero_division=0),
         "Matthews CorrCoef": matthews_corrcoef(y_test, y_pred),
-        "Cohen\u2019s Kappa": cohen_kappa_score(y_test, y_pred),
+        "Cohen's Kappa": cohen_kappa_score(y_test, y_pred),
     }
     if y_proba is not None:
         metrics["Log Loss"] = log_loss(y_test, y_proba)

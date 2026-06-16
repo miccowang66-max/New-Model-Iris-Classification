@@ -389,7 +389,8 @@ def render_performance_metrics(models, X_test, y_test):
     with col9:
         st.metric("Matthews CC", f"{metrics['Matthews CorrCoef']:.4f}")
     with col10:
-        st.metric("Cohen's Kappa", f"{metrics[\"Cohen\u2019s Kappa\"]:.4f}")
+        cohens = metrics["Cohen's Kappa"]
+    st.metric("Cohen's Kappa", f"{cohens:.4f}")
 
     st.markdown("---")
     st.markdown("### Model Comparison Table")
@@ -402,7 +403,7 @@ def render_performance_metrics(models, X_test, y_test):
             "Precision Macro": m["Precision (Macro)"],
             "Recall Macro": m["Recall (Macro)"],
             "MCC": m["Matthews CorrCoef"],
-            "Kappa": m["Cohen\u2019s Kappa"],
+            "Kappa": m["Cohen's Kappa"],
         }
         if m.get("Log Loss") is not None:
             row["Log Loss"] = m["Log Loss"]

@@ -16,10 +16,8 @@
 
 | Platform | URL | Description |
 |----------|-----|-------------|
-| **Streamlit Cloud** | [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=miccowang66-max/New-Model-Iris-Classification&branch=main&mainModule=app.py) | Production deployment |
+| **Streamlit Cloud** | [**new-model-iris-classification.streamlit.app**](https://new-model-iris-classification.streamlit.app) | Production deployment |
 | **Local** | `streamlit run app.py` | Local development server |
-
-> Click the Streamlit badge above to deploy instantly, or run locally with the command below.
 
 ---
 
