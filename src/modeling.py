@@ -7,10 +7,53 @@ from sklearn.svm import SVC
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GridSearchCV, cross_val_score
 
 MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
 RANDOM_STATE = 42
+
+
+def get_param_grids():
+    return {
+        "Logistic Regression": {
+            "estimator": LogisticRegression(solver="lbfgs", random_state=RANDOM_STATE),
+            "param_grid": {
+                "C": [0.01, 0.1, 1, 10, 100],
+                "max_iter": [500, 1000, 2000, 5000],
+            },
+        },
+        "K-Nearest Neighbors": {
+            "estimator": KNeighborsClassifier(),
+            "param_grid": {
+                "n_neighbors": [3, 5, 7, 9, 11],
+                "weights": ["uniform", "distance"],
+                "metric": ["euclidean", "manhattan"],
+            },
+        },
+        "Support Vector Classifier": {
+            "estimator": SVC(kernel="rbf", random_state=RANDOM_STATE),
+            "param_grid": {
+                "C": [0.1, 1, 10, 100],
+                "gamma": ["scale", "auto", 0.01, 0.1],
+            },
+        },
+        "Random Forest": {
+            "estimator": RandomForestClassifier(random_state=RANDOM_STATE),
+            "param_grid": {
+                "n_estimators": [50, 100, 200],
+                "max_depth": [3, 5, 10, None],
+                "min_samples_split": [2, 5, 10],
+            },
+        },
+        "Decision Tree": {
+            "estimator": DecisionTreeClassifier(random_state=RANDOM_STATE),
+            "param_grid": {
+                "max_depth": [3, 5, 7, 10, None],
+                "min_samples_split": [2, 5, 10],
+                "criterion": ["gini", "entropy"],
+            },
+        },
+    }
 
 
 def train_all_models(X_train, y_train):
@@ -32,6 +75,36 @@ def train_all_models(X_train, y_train):
         trained[name] = model
 
     return trained
+
+
+def train_with_gridsearch(X_train, y_train):
+    param_grids = get_param_grids()
+    best_models = {}
+    best_params_all = {}
+
+    for name, config in param_grids.items():
+        gs = GridSearchCV(
+            config["estimator"], config["param_grid"],
+            cv=5, scoring="accuracy", n_jobs=-1, refit=True
+        )
+        gs.fit(X_train, y_train)
+
+        if name == "Support Vector Classifier":
+            best_models[name] = CalibratedClassifierCV(
+                SVC(kernel="rbf", random_state=RANDOM_STATE, **{
+                    k: v for k, v in gs.best_params_.items() if k != "ensemble"
+                }), ensemble=False
+            )
+            best_models[name].fit(X_train, y_train)
+        else:
+            best_models[name] = gs.best_estimator_
+
+        best_params_all[name] = {
+            "best_params": gs.best_params_,
+            "best_cv_score": gs.best_score_,
+        }
+
+    return best_models, best_params_all
 
 
 def cross_validate_models(models, X_train, y_train, cv=5):

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import (accuracy_score, classification_report, confusion_matrix,
                               roc_curve, auc, precision_score, recall_score, f1_score,
-                              log_loss, matthews_corrcoef, cohen_kappa_score)
+                              log_loss, matthews_corrcoef, cohen_kappa_score, r2_score)
 from sklearn.preprocessing import label_binarize
 from sklearn.model_selection import cross_val_score
 
@@ -27,6 +27,7 @@ def compute_all_metrics(model, X_test, y_test):
         "Precision (Weighted)": precision_score(y_test, y_pred, average="weighted", zero_division=0),
         "Recall (Weighted)": recall_score(y_test, y_pred, average="weighted", zero_division=0),
         "F1 Score (Weighted)": f1_score(y_test, y_pred, average="weighted", zero_division=0),
+        "R Squared (R2)": r2_score(y_test, y_pred),
         "Matthews CorrCoef": matthews_corrcoef(y_test, y_pred),
         "Cohen's Kappa": cohen_kappa_score(y_test, y_pred),
     }

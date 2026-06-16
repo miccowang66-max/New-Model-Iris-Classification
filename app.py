@@ -16,7 +16,7 @@ from src.data_understanding import (
     plot_pairplot, plot_correlation_heatmap, plot_pca_2d, plot_pca_3d, plot_explained_variance
 )
 from src.data_preparation import prepare_data
-from src.modeling import train_all_models, save_best_model
+from src.modeling import train_all_models, save_best_model, train_with_gridsearch
 from src.evaluation import (
     evaluate_all, evaluate_with_cv, get_classification_reports,
     plot_confusion_matrices, plot_roc_curves, plot_model_comparison, plot_cv_comparison,
@@ -61,6 +61,11 @@ def cached_train_models(_X_train, _y_train):
     return train_all_models(_X_train, _y_train)
 
 
+@st.cache_resource
+def cached_gridsearch(_X_train, _y_train):
+    return train_with_gridsearch(_X_train, _y_train)
+
+
 @st.cache_data
 def cached_prepare_data(_df):
     return prepare_data(_df, save=True)
@@ -70,11 +75,12 @@ def load_or_train():
     df = cached_load_data()
     X_train, X_test, y_train, y_test, scaler = cached_prepare_data(df)
     models = cached_train_models(X_train, y_train)
+    gs_models, gs_params = cached_gridsearch(X_train, y_train)
 
     if not os.path.exists(BEST_MODEL_PATH):
-        save_best_model(models, X_test, y_test)
+        save_best_model(gs_models, X_test, y_test)
 
-    return df, X_train, X_test, y_train, y_test, scaler, models
+    return df, X_train, X_test, y_train, y_test, scaler, models, gs_models, gs_params
 
 
 def main():
@@ -82,7 +88,7 @@ def main():
     st.markdown('<p class="sub-header">CRISP-DM Machine Learning Pipeline · PCA + Multi-Model Evaluation · Streamlit Deployment</p>', unsafe_allow_html=True)
 
     with st.spinner("Loading Iris dataset & training models..."):
-        df, X_train, X_test, y_train, y_test, scaler, models = load_or_train()
+        df, X_train, X_test, y_train, y_test, scaler, models, gs_models, gs_params = load_or_train()
 
     st.sidebar.markdown("## 📋 CRISP-DM Phases")
     phase = st.sidebar.radio(
@@ -100,7 +106,7 @@ def main():
     )
 
     if phase == "🏠 Home — Key Results":
-        render_home(df, models, X_test, y_test)
+        render_home(df, gs_models, X_test, y_test)
 
     elif phase == "1. Business Understanding":
         render_phase_1()
@@ -112,16 +118,16 @@ def main():
         render_phase_3(df, X_train, X_test, y_train, y_test)
 
     elif phase == "4. Modeling":
-        render_phase_4(models)
+        render_phase_4(gs_models, gs_params)
 
     elif phase == "5. Evaluation":
-        render_phase_5(models, X_train, y_train, X_test, y_test)
+        render_phase_5(gs_models, X_train, y_train, X_test, y_test)
 
     elif phase == "6. Performance Metrics":
-        render_performance_metrics(models, X_test, y_test)
+        render_performance_metrics(gs_models, X_test, y_test)
 
     elif phase == "7. Deployment — Predict":
-        render_phase_6(models, scaler)
+        render_phase_6(gs_models, scaler)
 
 
 def render_home(df, models, X_test, y_test):
@@ -148,7 +154,7 @@ def render_home(df, models, X_test, y_test):
     best_name = max(all_metrics, key=lambda m: all_metrics[m]["Accuracy"])
     best_m = all_metrics[best_name]
 
-    cols = st.columns(6)
+    cols = st.columns(7)
     with cols[0]:
         st.metric("Best Model", best_name)
     with cols[1]:
@@ -156,11 +162,15 @@ def render_home(df, models, X_test, y_test):
     with cols[2]:
         st.metric("F1 (Macro)", f"{best_m['F1 Score (Macro)']:.2%}")
     with cols[3]:
-        st.metric("Precision (Macro)", f"{best_m['Precision (Macro)']:.2%}")
+        st.metric("R Squared", f"{best_m['R Squared (R2)']:.4f}")
     with cols[4]:
-        st.metric("Log Loss", f"{best_m.get('Log Loss', 0):.4f}")
+        st.metric("Log Loss (CE)", f"{best_m.get('Log Loss', 0):.4f}")
     with cols[5]:
-        st.metric("Matthews CC", f"{best_m['Matthews CorrCoef']:.4f}")
+        mcc = best_m['Matthews CorrCoef']
+        st.metric("Matthews CC", f"{mcc:.4f}")
+    with cols[6]:
+        kappa = best_m["Cohen's Kappa"]
+        st.metric("Cohen's Kappa", f"{kappa:.4f}")
 
     st.markdown("---")
 
@@ -332,38 +342,49 @@ def render_phase_3(df, X_train, X_test, y_train, y_test):
         st.dataframe(preview, use_container_width=True)
 
 
-def render_phase_4(models):
+def render_phase_4(models, gs_params):
     st.markdown('<p class="phase-title">Phase 4 — Modeling</p>', unsafe_allow_html=True)
 
     st.markdown("""
-    Five classification models are trained with `random_state=42` for reproducibility.
-    All models use the **same** standardized training data from Phase 3.
+    Five classification models are trained with **GridSearchCV + 5-Fold Cross-Validation**
+    to maximize each model's performance (`random_state=42` for reproducibility).
+
+    ### Cross-Entropy (Log Loss) Optimization
+
+    **Logistic Regression** uses `solver='lbfgs'` with **multinomial cross-entropy (log loss)**
+    as its objective function — this is the standard for multi-class classification.
+
+    All models are evaluated by maximizing **Accuracy (Max R)** via GridSearchCV.
     """)
 
+    st.markdown("### GridSearchCV Best Parameters")
     cols = st.columns(len(models))
-    for idx, (name, model) in enumerate(models.items()):
+    for idx, (name, _model) in enumerate(models.items()):
         with cols[idx]:
             st.markdown(f"**{name}**")
-            params = model.get_params()
-            key_params = {}
-            if "C" in params:
-                key_params["C (regularization)"] = params["C"]
-            if "n_neighbors" in params:
-                key_params["n_neighbors"] = params["n_neighbors"]
-            if "kernel" in params:
-                key_params["kernel"] = params["kernel"]
-            if "n_estimators" in params:
-                key_params["n_estimators"] = params["n_estimators"]
-            if "max_depth" in params:
-                key_params["max_depth"] = params["max_depth"]
-            if "max_iter" in params:
-                key_params["max_iter"] = params["max_iter"]
+            if name in gs_params:
+                bp = gs_params[name]["best_params"]
+                cv_score = gs_params[name]["best_cv_score"]
+                st.markdown(f"*CV Score: {cv_score:.2%}*")
+                for k, v in bp.items():
+                    st.markdown(f"- `{k}`: **{v}**")
+            else:
+                params = _model.get_params()
+                key_params = {}
+                if "C" in params:
+                    key_params["C"] = params["C"]
+                if "n_neighbors" in params:
+                    key_params["n_neighbors"] = params["n_neighbors"]
+                if "kernel" in params:
+                    key_params["kernel"] = params["kernel"]
+                if "n_estimators" in params:
+                    key_params["n_estimators"] = params["n_estimators"]
+                if "max_depth" in params:
+                    key_params["max_depth"] = params["max_depth"]
+                for k, v in key_params.items():
+                    st.markdown(f"- `{k}`: **{v}**")
 
-            param_str = "\n".join([f"- {k}: `{v}`" for k, v in key_params.items()])
-            if param_str:
-                st.markdown(param_str)
-
-    st.info("Go to **Evaluation** phase to see model performance comparison.")
+    st.info("GridSearchCV maximizes each model's accuracy independently. Go to **Evaluation** phase for comparison.")
 
 
 def render_phase_5(models, X_train, y_train, X_test, y_test):
