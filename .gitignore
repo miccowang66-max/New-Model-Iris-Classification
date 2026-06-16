@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+env/
+.env
+*.pkl
+data/processed/
+*.png
+*.jpg
+.streamlit/
+.ipynb_checkpoints/
