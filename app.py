@@ -370,12 +370,12 @@ def render_phase_4(models, gs_params):
         info = gs_params[selected_model]
         bp = info["best_params"]
         cv_score = info["best_cv_score"]
-        cv_df = info["cv_results_df"]
-        n_combos = info["n_combos"]
+        cv_df = info.get("cv_results_df")
+        n_combos = info.get("n_combos", 0)
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Combinations Tested", n_combos)
+            st.metric("Combinations Tested", n_combos or "N/A")
         with col2:
             st.metric("Best CV Score (Max R)", f"{cv_score:.2%}")
         with col3:
@@ -385,25 +385,28 @@ def render_phase_4(models, gs_params):
         for k, v in bp.items():
             st.markdown(f"- `{k}` = **{v}**")
 
-        st.markdown("---")
-        st.markdown("#### All Parameter Combinations (sorted by Max R)")
+        if cv_df is not None and n_combos > 0:
+            st.markdown("---")
+            st.markdown("#### All Parameter Combinations (sorted by Max R)")
 
-        cols_to_show = ["rank_test_score"]
-        for col in cv_df.columns:
-            if col.startswith("param_") and cv_df[col].nunique() > 1:
-                cols_to_show.append(col)
-        cols_to_show.append("mean_test_score")
-        cols_to_show.append("std_test_score")
+            cols_to_show = ["rank_test_score"]
+            for col in cv_df.columns:
+                if col.startswith("param_") and cv_df[col].nunique() > 1:
+                    cols_to_show.append(col)
+            cols_to_show.append("mean_test_score")
+            cols_to_show.append("std_test_score")
 
-        display_df = cv_df[cols_to_show].copy()
-        display_df = display_df.sort_values("rank_test_score")
-        display_df["mean_test_score"] = display_df["mean_test_score"].apply(lambda x: f"{x:.4f}")
-        display_df["std_test_score"] = display_df["std_test_score"].apply(lambda x: f"{x:.4f}")
-        display_df.columns = [c.replace("param_", "").replace("mean_test_score", "CV Mean (Max R)")
-                              .replace("std_test_score", "CV Std").replace("rank_test_score", "Rank")
-                              for c in display_df.columns]
+            display_df = cv_df[cols_to_show].copy()
+            display_df = display_df.sort_values("rank_test_score")
+            display_df["mean_test_score"] = display_df["mean_test_score"].apply(lambda x: f"{x:.4f}")
+            display_df["std_test_score"] = display_df["std_test_score"].apply(lambda x: f"{x:.4f}")
+            display_df.columns = [c.replace("param_", "").replace("mean_test_score", "CV Mean (Max R)")
+                                  .replace("std_test_score", "CV Std").replace("rank_test_score", "Rank")
+                                  for c in display_df.columns]
 
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+        else:
+            st.warning("Full tuning table unavailable (stale cache). Please clear Streamlit cache: C → Clear cache.")
 
         st.success(
             f"**Max R achieved for {selected_model}:** Best CV Score = {cv_score:.2%} "
